@@ -9,7 +9,8 @@ tqdm
 faker
 networkx
 matplotlib
-fastapi
-uvicorn
-pydantic
-python-multipart
+ctgan 
+flwr 
+shap 
+ipython 
+ray
