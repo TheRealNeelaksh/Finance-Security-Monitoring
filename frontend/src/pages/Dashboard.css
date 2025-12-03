@@ -1,0 +1,90 @@
+/* --- GLOBAL --- */
+:root {
+  --bg: #f4f7fe;
+  --white: #ffffff;
+  --text-main: #2b3674;
+  --text-light: #a3aed0;
+  --primary: #4318ff;
+  --success: #05cd99;
+  --danger: #ee5d50;
+  --warning: #ffb547;
+}
+
+body { background-color: var(--bg); color: var(--text-main); font-family: 'DM Sans', sans-serif; }
+.dashboard-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+/* --- NAVBAR --- */
+.navbar {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--white); padding: 15px 30px; border-radius: 20px; margin-bottom: 25px;
+  box-shadow: 0 18px 40px rgba(112, 144, 176, 0.12);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 24px; }
+.brand-icon { color: var(--primary); fill: var(--primary); fill-opacity: 0.2; }
+.nav-links { display: flex; gap: 30px; align-items: center; }
+.nav-item { display: flex; align-items: center; gap: 8px; color: var(--text-light); font-weight: 500; cursor: pointer; transition: color 0.2s; }
+.nav-item:hover { color: var(--primary); }
+.nav-item.active { color: var(--primary); font-weight: 700; }
+
+/* --- LAUNCH APP BUTTON --- */
+.launch-btn {
+  background: linear-gradient(135deg, #4318ff 0%, #2b3674 100%);
+  color: white !important;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(67, 24, 255, 0.4);
+}
+.launch-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(67, 24, 255, 0.5); }
+
+.nav-profile { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.avatar { width: 35px; height: 35px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+/* --- GRID --- */
+.stats-grid { display: grid; grid-template-columns: 1.8fr 1fr; gap: 20px; margin-bottom: 20px; }
+.card { background: var(--white); border-radius: 20px; padding: 24px; box-shadow: 0 18px 40px rgba(112, 144, 176, 0.12); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.section-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+
+/* --- RISK CARD --- */
+.donut-layout { display: flex; align-items: center; justify-content: space-around; }
+.donut-wrapper { position: relative; width: 140px; height: 140px; }
+.risk-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+.risk-label h2 { margin: 0; font-size: 28px; font-weight: 700; }
+.risk-details { flex: 1; margin-left: 40px; }
+.metric { margin-bottom: 15px; font-size: 14px; color: var(--text-light); }
+.metric-text { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.metric-text strong { color: var(--text-main); }
+.bar-bg { background: #f4f7fe; height: 8px; border-radius: 10px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+
+/* --- ALERT CARD --- */
+.alert-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.alert-badge-wrapper { position: relative; margin-bottom: 10px; }
+.pulse-circle { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+.alert-count { position: absolute; top: 0; right: 0; background: var(--danger); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; border: 2px solid white; }
+.mini-alert-list { margin-top: 20px; width: 100%; }
+.mini-alert { background: #fff5f5; color: var(--danger); padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: center; }
+.mini-alert.success { background: #e6fdf5; color: var(--success); }
+
+/* --- TABLE & TOAST (Kept same) --- */
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; color: var(--text-light); font-weight: 500; font-size: 14px; padding: 15px 10px; border-bottom: 1px solid #f4f7fe; }
+td { padding: 15px 10px; border-bottom: 1px solid #f4f7fe; font-size: 14px; font-weight: 600; color: var(--text-main); }
+.icon-text { display: flex; align-items: center; gap: 8px; }
+.risk-pill { padding: 4px 10px; border-radius: 8px; font-weight: 700; display: inline-block; }
+.status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.status-badge.blocked { background: #fff5f5; color: var(--danger); }
+.status-badge.success { background: #e6fdf5; color: var(--success); }
+.status-badge.verified { background: #f4f7fe; color: var(--text-main); border: 1px solid var(--text-light); }
+.action-buttons { display: flex; gap: 8px; }
+.btn-icon { width: 32px; height: 32px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+.btn-icon.safe { background: #e6fdf5; color: var(--success); }
+.btn-icon.fraud { background: #fff5f5; color: var(--danger); }
+.btn-icon:hover { transform: scale(1.1); }
+.feedback-text { font-size: 12px; color: var(--text-light); font-style: italic; }
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast { background: white; padding: 15px 20px; border-left: 5px solid var(--danger); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 15px; animation: slideIn 0.3s ease-out; min-width: 300px; }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }

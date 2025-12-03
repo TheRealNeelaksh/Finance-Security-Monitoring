@@ -1,0 +1,121 @@
+/* --- PAGE LAYOUT --- */
+.login-container {
+  position: fixed; /* Force full screen overlay */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Segoe UI', sans-serif;
+  z-index: 10; /* Ensure it sits on top */
+  overflow-y: auto; /* Allow scrolling if screen is too small */
+}
+
+/* --- LOGIN CARD --- */
+.login-box {
+  background: white;
+  padding: 40px;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-box h2 {
+  margin-bottom: 30px;
+  color: #2c3e50;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+/* --- FORM ELEMENTS --- */
+.login-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-box input {
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 16px;
+  background: #fafafa;
+  transition: all 0.2s ease;
+  width: 100%; /* Ensure inputs take full width */
+  box-sizing: border-box; /* Include padding in width */
+}
+
+.login-box input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.login-box button {
+  padding: 12px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.login-box button:hover {
+  background: #4338ca;
+}
+
+.login-box button:disabled {
+  background: #a5a6f6;
+  cursor: not-allowed;
+}
+
+/* --- STATUS MESSAGES --- */
+.error-msg {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #fecaca;
+  margin-bottom: 20px;
+}
+
+.warning-msg {
+  background: #fef3c7;
+  color: #d97706;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #fde68a;
+  margin-bottom: 20px;
+}
+
+.success-msg {
+  background: #d1fae5;
+  color: #059669;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #a7f3d0;
+  margin-bottom: 20px;
+}
