@@ -1,16 +1,22 @@
+# --- Web Server Core (Required to start the app on Render) ---
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+websockets
+requests
+
+# --- AI & Machine Learning Runtime (Required to run your models) ---
+tensorflow
+tf-keras
+scikit-learn
 pandas
 numpy
-scikit-learn
-tensorflow
-xgboost
 joblib
+xgboost
+
+# --- Utilities (Keep these as they were likely used for feature prep) ---
+networkx
 geopy
 tqdm
 faker
-networkx
-matplotlib
-ctgan 
-flwr 
-shap 
-ipython 
-ray
