@@ -9,6 +9,40 @@ import {
 } from 'recharts';
 import './Dashboard.css';
 
+// --- HELPER: Process History for Real-Time Graph ---
+const processRealTimeData = (historyLog) => {
+  if (!historyLog || historyLog.length === 0) {
+    // Placeholder to keep graph looking good when empty
+    return [
+      { time: 'Start', normal: 0, suspicious: 0 },
+      { time: 'Live', normal: 0, suspicious: 0 }
+    ];
+  }
+
+  const groups = {};
+
+  // Process logs (Reverse so oldest appear first on the left)
+  [...historyLog].reverse().forEach(log => {
+    // Extract time string (e.g. "Dec 03, 10:45 AM") -> "10:45 AM"
+    // We split by comma to get the time part
+    const timeParts = log.time.split(', ');
+    const timeLabel = timeParts.length > 1 ? timeParts[1] : log.time; 
+
+    if (!groups[timeLabel]) {
+      groups[timeLabel] = { time: timeLabel, normal: 0, suspicious: 0 };
+    }
+
+    // Count: Green vs Red
+    if (log.status === 'Success' || log.status === 'Verified Safe') {
+      groups[timeLabel].normal += 1;
+    } else {
+      groups[timeLabel].suspicious += 1;
+    }
+  });
+
+  return Object.values(groups);
+};
+
 const Dashboard = () => {
   // ----------------------------
   // 1. STATE MANAGEMENT
@@ -17,10 +51,10 @@ const Dashboard = () => {
   const [alerts, setAlerts] = useState([]); 
 
   // ----------------------------
-  // 2. WEBSOCKET CONNECTION (Robust)
+  // 2. WEBSOCKET CONNECTION
   // ----------------------------
   useEffect(() => {
-    // Determine WebSocket URL dynamically (Local vs Production)
+    // Dynamic URL for Local/Vercel
     const baseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
     const wsUrl = baseUrl.replace("http", "ws"); 
     
@@ -32,52 +66,37 @@ const Dashboard = () => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "CRITICAL_ALERT") {
-          
-          // 🛡️ PREVENT DUPLICATES: Create a unique ID based on time
+          // Prevent duplicates (debounce 500ms)
           const newAlertId = Date.now();
-          
           setAlerts(prev => {
-            // Check if we received an alert in the last 500ms (debounce)
             const recent = prev.find(a => newAlertId - a.id < 500);
-            if (recent) return prev; // Ignore duplicate
-
+            if (recent) return prev;
             return [{ id: newAlertId, msg: data.message }, ...prev];
           });
           
-          // Auto-remove alert after 5 seconds
           setTimeout(() => setAlerts(prev => prev.filter(a => a.id !== newAlertId)), 5000);
-          
-          // Refresh table immediately
           fetchHistory(); 
         }
-      } catch (e) {
-        console.error("WS Parse Error", e);
-      }
+      } catch (e) { console.error("WS Error", e); }
     };
 
-    // Cleanup connection when component unmounts
     return () => { if (ws.readyState === 1) ws.close(); };
   }, []);
 
   // ----------------------------
-  // 3. SAFE DATA POLLING
+  // 3. ROBUST DATA POLLING
   // ----------------------------
   const fetchHistory = async () => {
     try {
       const res = await apiClient.get('/security/history');
-      // 🛡️ CRITICAL FIX: Ensure data is an array before setting state
       if (Array.isArray(res.data)) {
         setHistory(res.data);
       } else {
-        console.warn("⚠️ API returned non-array data:", res.data);
-        setHistory([]); // Fallback to empty list to prevent crash
+        setHistory([]); 
       }
-    } catch (err) { 
-      console.error("API Error", err); 
-    }
+    } catch (err) { console.error("API Error", err); }
   };
 
-  // Poll every 2 seconds
   useEffect(() => {
     fetchHistory();
     const interval = setInterval(fetchHistory, 2000);
@@ -85,7 +104,7 @@ const Dashboard = () => {
   }, []);
 
   // ----------------------------
-  // 4. ACTION HANDLERS
+  // 4. ACTIONS
   // ----------------------------
   const handleVerify = async (logId, action) => {
     try {
@@ -95,21 +114,18 @@ const Dashboard = () => {
   };
 
   const openSimulator = () => {
-    // Opens the login page in a mobile-app sized popup
     window.open('/login', 'BankSimulator', 'toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=400,height=750');
   };
 
   // ----------------------------
-  // 5. DYNAMIC CALCULATIONS (Safe Mode)
+  // 5. DYNAMIC CALCULATIONS
   // ----------------------------
-  // Ensure history is an array before using .filter() or .map()
   const safeHistory = Array.isArray(history) ? history : [];
 
+  // A. Safety Score
   const latestLog = safeHistory.length > 0 ? safeHistory[0] : null;
   const latestRisk = latestLog ? latestLog.risk_score : 0; 
   const safePercentage = Math.round((1 - latestRisk) * 100); 
-  
-  // Color Logic: Green if Safe > 80%, Red if Safe < 50%
   const gaugeColor = safePercentage > 80 ? '#05cd99' : safePercentage > 50 ? '#ffb547' : '#ee5d50';
 
   const donutData = [
@@ -117,18 +133,13 @@ const Dashboard = () => {
     { name: 'Risk', value: 100 - safePercentage }
   ];
 
-  // 🛡️ SAFE METRICS
+  // B. Real Counters
   const failedCount = safeHistory.filter(h => h.status === 'Blocked' || h.status === 'Suspicious').length;
   const uniqueDevices = new Set(safeHistory.map(h => h.device)).size;
   const activeThreats = safeHistory.filter(h => h.risk_score > 0.8 && !h.user_feedback).length;
 
-  const trendData = [
-    { day: "Mon", normal: 40, suspicious: 2 },
-    { day: "Tue", normal: 30, suspicious: 5 },
-    { day: "Wed", normal: 50, suspicious: 1 },
-    { day: "Thu", normal: 45, suspicious: 3 },
-    { day: "Fri", normal: 60, suspicious: failedCount } // Updates live!
-  ];
+  // C. REAL-TIME GRAPH DATA (This is the fix)
+  const trendData = processRealTimeData(safeHistory);
 
   // ----------------------------
   // 6. UI RENDER
@@ -136,7 +147,6 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       
-      {/* TOAST ALERTS */}
       <div className="toast-container">
         {alerts.map(alert => (
           <div key={alert.id} className="toast">
@@ -149,7 +159,6 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* NAVBAR */}
       <nav className="navbar">
         <div className="brand">
           <Shield size={28} className="brand-icon" />
@@ -157,21 +166,14 @@ const Dashboard = () => {
         </div>
         <div className="nav-links">
           <div className="nav-item active"><LayoutDashboard size={18}/> Dashboard</div>
-          
-          {/* LAUNCH APP BUTTON */}
           <div className="nav-item launch-btn" onClick={openSimulator}>
             <Smartphone size={16}/> Launch App
           </div>
-          
-          <div className="nav-item"><Bell size={18}/> Alerts</div>
           <div className="nav-item"><Settings size={18}/> Settings</div>
         </div>
-        {/* REMOVED: Admin Profile Section */}
       </nav>
 
-      {/* STATS GRID */}
       <div className="stats-grid">
-        
         {/* RISK CARD */}
         <div className="card risk-card">
           <div className="card-header">
@@ -182,13 +184,8 @@ const Dashboard = () => {
             <div className="donut-wrapper">
                <PieChart width={140} height={140}>
                   <Pie 
-                    data={donutData} 
-                    innerRadius={55} 
-                    outerRadius={70} 
-                    startAngle={90} 
-                    endAngle={-270} 
-                    dataKey="value"
-                    stroke="none"
+                    data={donutData} innerRadius={55} outerRadius={70} 
+                    startAngle={90} endAngle={-270} dataKey="value" stroke="none"
                   >
                     <Cell fill={gaugeColor} /> 
                     <Cell fill="#f4f7fe" />
@@ -202,22 +199,12 @@ const Dashboard = () => {
             
             <div className="risk-details">
               <div className="metric">
-                <div className="metric-text">
-                    <span>Failed Attempts</span>
-                    <strong>{failedCount}</strong>
-                </div>
-                <div className="bar-bg">
-                    <div className="bar-fill" style={{width: `${Math.min(failedCount * 5, 100)}%`, background:'#ee5d50'}}></div>
-                </div>
+                <div className="metric-text"><span>Failed Attempts</span><strong>{failedCount}</strong></div>
+                <div className="bar-bg"><div className="bar-fill" style={{width: `${Math.min(failedCount * 5, 100)}%`, background:'#ee5d50'}}></div></div>
               </div>
               <div className="metric">
-                <div className="metric-text">
-                    <span>Active Devices</span>
-                    <strong>{uniqueDevices}</strong>
-                </div>
-                <div className="bar-bg">
-                    <div className="bar-fill" style={{width: `${Math.min(uniqueDevices * 10, 100)}%`, background:'#ffb547'}}></div>
-                </div>
+                <div className="metric-text"><span>Active Devices</span><strong>{uniqueDevices}</strong></div>
+                <div className="bar-bg"><div className="bar-fill" style={{width: `${Math.min(uniqueDevices * 10, 100)}%`, background:'#ffb547'}}></div></div>
               </div>
             </div>
           </div>
@@ -233,7 +220,6 @@ const Dashboard = () => {
           </div>
           <h3>{activeThreats > 0 ? "Threats Detected" : "System Secure"}</h3>
           <p className="sub-text">Real-time threat monitoring active</p>
-          
           <div className="mini-alert-list">
             {activeThreats > 0 ? (
               <div className="mini-alert">
@@ -250,23 +236,25 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* CHART & TABLE */}
+      {/* REAL-TIME GRAPH */}
       <div className="card chart-section">
-        <div className="section-title"><Activity size={20} color="#4318ff"/> Login Traffic Analysis</div>
+        <div className="section-title"><Activity size={20} color="#4318ff"/> Live Traffic Analysis</div>
         <div style={{ width: '100%', height: 220 }}>
           <ResponsiveContainer>
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e5f2"/>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#a3aed0', fontSize: 12}} dy={10}/>
+              {/* NOTE: dataKey is now "time" (e.g. 10:45 AM) instead of "day" */}
+              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: '#a3aed0', fontSize: 12}} dy={10}/>
               <YAxis axisLine={false} tickLine={false} tick={{fill: '#a3aed0', fontSize: 12}}/>
               <Tooltip contentStyle={{borderRadius: '10px', border: 'none', boxShadow: '0 10px 20px rgba(0,0,0,0.1)'}}/>
-              <Line type="monotone" dataKey="normal" stroke="#05cd99" strokeWidth={3} dot={{r:4}} />
-              <Line type="monotone" dataKey="suspicious" stroke="#ee5d50" strokeWidth={3} dot={{r:4}} />
+              <Line type="monotone" dataKey="normal" stroke="#05cd99" strokeWidth={3} dot={{r:4}} name="Safe" />
+              <Line type="monotone" dataKey="suspicious" stroke="#ee5d50" strokeWidth={3} dot={{r:4}} name="Threats" />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
+      {/* TABLE */}
       <div className="card">
         <div className="section-title">Live Transaction Monitor</div>
         <div className="table-container">
@@ -288,7 +276,6 @@ const Dashboard = () => {
                   <td style={{fontWeight:'500'}}>{row.time}</td>
                   <td><div className="icon-text"><MapPin size={14} color="#a3aed0"/> {row.location}</div></td>
                   <td><div className="icon-text"><Smartphone size={14} color="#a3aed0"/> {row.device}</div></td>
-                  
                   <td>
                     <div className="risk-pill" style={{
                       color: row.risk_score > 0.8 ? '#ee5d50' : row.risk_score > 0.5 ? '#ffb547' : '#05cd99',
@@ -297,17 +284,14 @@ const Dashboard = () => {
                       {(row.risk_score * 100).toFixed(0)}%
                     </div>
                   </td>
-
                   <td style={{fontSize:'13px', fontWeight:'600', color: row.risk_score > 0.5 ? '#ee5d50' : '#a3aed0'}}>
                       {row.reason || "Standard Login"}
                   </td>
-                  
                   <td>
                     <span className={`status-badge ${row.status === 'Verified Safe' ? 'verified' : row.status.includes('Block') ? 'blocked' : 'success'}`}>
                        {row.status}
                     </span>
                   </td>
-
                   <td>
                     {row.user_feedback ? (
                       <span className="feedback-text">{row.user_feedback}</span>
