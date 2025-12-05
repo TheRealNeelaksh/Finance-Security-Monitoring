@@ -40,15 +40,51 @@ This system addresses four major security challenges:
 
 ```mermaid
 graph LR
-    A[User/Attacker] -->|Login Attempt| B(React Login Simulator)
+    %% Style
+    classDef box fill:#1e1e1e,stroke:#888,color:#fff,stroke-width:1px;
+    classDef diamond fill:#1e1e1e,stroke:#888,color:#fff,stroke-width:1px,rx:10,ry:10;
+
+    A[User/Attacker] -->|Login Attempt| B[React Login Simulator]
+    class A,B box;
+
     B -->|HTTP POST| C{FastAPI Backend}
-    C -->|Feature Extraction| D[AI Inference Engine]
-    D -->|Behavior| E[Isolation Forest]
-    D -->|Sequence| F[LSTM]
-    D -->|Network| G[Graph Lookup]
+    class C diamond;
+
+    C -->|Feature Extraction| FE[Preprocessing & Feature Engineering]
+    class FE box;
+
+    FE -->|Structured Features| M{AI Inference Engine}
+    class M diamond;
+
+    %% Models inside the AI Engine
+    M -->|Behavior| IF[Isolation Forest]
+    class IF box;
+
+    M -->|Sequence| LSTM[LSTM Model]
+    class LSTM box;
+
+    M -->|Network| GRAPH[Graph Lookup]
+    class GRAPH box;
+
+    %% Back to Backend
     C -->|Risk Score| B
-    C -->|WebSocket Alert| H(Admin Dashboard)
-    H -->|Verify/Feedback| C
+    C -->|WebSocket Alert| AD[Admin Dashboard]
+    class AD box;
+
+    AD -->|Verify/Feedback| C
+
+    %% Extended: Ensemble & DB & Training
+    M --> ENS[Risk Scoring & Ensemble Engine]
+    class ENS box;
+
+    ENS --> DB[(Logs + Feature Store + Feedback DB)]
+    class DB box;
+
+    DB --> TRAIN[Offline Model Trainer]
+    TRAIN -->|Model Update| M
+    class TRAIN box;
+
+
 ```
 
 ---
