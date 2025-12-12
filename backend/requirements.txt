@@ -20,3 +20,6 @@ networkx
 geopy
 tqdm
 faker
+fpdf
+
+google-generativeai  

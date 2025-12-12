@@ -1,113 +1,93 @@
 import requests
-import random
-import argparse
 import time
+import random
+import sys
 
-API_URL = input("Enter backend URL : ")
+# --- CONFIGURATION ---
+# If running locally:
+# API_URL = "http://127.0.0.1:8000/security/analyze-login"
+# If running on Render/Vercel, change to:
+API_URL = "https://finance-security-ai-monitor.onrender.com/security/analyze-login"
 
+# Colors for Terminal
+GREEN = '\033[92m'
+RED = '\033[91m'
+YELLOW = '\033[93m'
+RESET = '\033[0m'
 
-USERS = [
-    "alice", "bob", "charlie", "diana",
-    "eve", "frank", "george", "harry"
-]
+USERS = ["alice", "bob", "charlie", "diana", "eve_hacker"]
 
-# -------------------------
-# SEND EVENT
-# -------------------------
-def send_event(user_id, features, sequence_data):
+def send_request(user_id, features, sequence, attack_name):
     payload = {
         "user_id": user_id,
         "features": features,
-        "sequence_data": sequence_data
+        "sequence_data": sequence
     }
-
-    print(f"[SEND] {payload}")
-
+    
     try:
-        r = requests.post(API_URL, json=payload, timeout=8)
-        print(f"[RESPONSE] {r.status_code} {r.text}")
-        return r
+        start = time.time()
+        res = requests.post(API_URL, json=payload, timeout=5)
+        latency = round((time.time() - start) * 1000)
+        
+        if res.status_code == 200:
+            data = res.json()
+            verdict = data.get("verdict")
+            risk = int(data.get("risk_score", 0) * 100)
+            reason = data.get("breakdown", {}).get("reason", "Unknown") # If you added reason to breakdown
+            
+            if verdict == "BLOCK":
+                print(f"{RED}[BLOCKED]{RESET} {attack_name} | Risk: {risk}% | User: {user_id} | {latency}ms")
+            elif verdict == "MFA_CHALLENGE":
+                print(f"{YELLOW}[FLAGGED]{RESET} {attack_name} | Risk: {risk}% | User: {user_id} | {latency}ms")
+            else:
+                print(f"{GREEN}[ALLOWED]{RESET} {attack_name} | Risk: {risk}% | User: {user_id} | {latency}ms")
+        else:
+            print(f"{RED}[ERROR]{RESET} Server returned {res.status_code}")
+            
     except Exception as e:
-        print(f"[ERROR] {e}")
-        return None
+        print(f"{RED}[FAIL]{RESET} Could not connect to backend. Is it running? {e}")
 
-# -------------------------
-# NORMAL
-# -------------------------
-def simulate_normal(count):
-    for _ in range(count):
-        user = random.choice(USERS)
-        features = [round(random.uniform(0.1, 0.3), 3) for _ in range(4)]
-        sequence = [[i % 4 + 1] for i in range(10)]  # stable pattern
-        send_event(user, features, sequence)
-        time.sleep(0.4)
+def run_simulation():
+    print(f"\n{YELLOW}🛡️  SECUREWATCH AI - LIVE ATTACK SIMULATOR{RESET}")
+    print("------------------------------------------------")
+    
+    while True:
+        print("\nSelect Attack Vector:")
+        print("1. 🟢 Normal Traffic (Valid Users)")
+        print("2. 🌍 Impossible Travel (Location Spoofing)")
+        print("3. 🤖 Bot Swarm (High Frequency)")
+        print("4. 🕸️ Fraud Ring (Device Reuse)")
+        print("5. Exit")
+        
+        choice = input("\nExecute Command [1-5]: ")
+        
+        if choice == '1':
+            print(f"\n{GREEN}>>> Generating Legitimate Traffic...{RESET}")
+            for _ in range(5):
+                user = random.choice(USERS)
+                # Feature[0] = 0.1 triggers "Safe" logic in backend
+                send_request(user, [0.1, 0.5, 0.5, 0.5], [[1],[2],[3],[4],[1],[2],[3],[4],[1],[2]], "Normal")
+                time.sleep(0.5)
 
-# -------------------------
-# IMPOSSIBLE TRAVEL
-# -------------------------
-def simulate_impossible_travel():
-    user = random.choice(USERS)
-
-    features_1 = [0.2, 0.2, 0.2, 0.2]
-    seq_1 = [[1],[2],[3],[4],[1],[2]]
-
-    features_2 = [100.0, 0.1, 0.1, 0.1]  # triggers impossible travel
-    seq_2 = [[1],[4],[1],[4],[1],[4]]
-
-    send_event(user, features_1, seq_1)
-    send_event(user, features_2, seq_2)
-
-# -------------------------
-# BOT SCRIPT
-# -------------------------
-def simulate_bot_script(user=None, attempts=50):
-    if not user:
-        user = random.choice(USERS)
-
-    features = [0.2, 0.2, 0.2, 0.2]  # repetitive
-    sequence = [[1] for _ in range(10)]  # bot-like uniform
-
-    for _ in range(attempts):
-        send_event(user, features, sequence)
-        time.sleep(0.1)
-
-# -------------------------
-# FRAUD RING
-# -------------------------
-def simulate_fraud_ring(group_size=5):
-    features_shared = [0.9, 0.9, 0.9, 0.9]  # triggers fraud ring
-    users = random.sample(USERS, group_size)
-
-    for u in users:
-        seq = [[random.randint(1, 4)] for _ in range(10)]
-        send_event(u, features_shared, seq)
-        time.sleep(0.25)
-
-# -------------------------
-# CLI
-# -------------------------
-def main():
-    parser = argparse.ArgumentParser(description="AI Login Simulator")
-
-    parser.add_argument("--mode", required=True, choices=[
-        "normal", "impossible_travel", "bot_script", "fraud_ring"
-    ])
-
-    parser.add_argument("--count", type=int, default=10)
-    parser.add_argument("--attempts", type=int, default=50)
-    parser.add_argument("--user", type=str)
-    parser.add_argument("--group-size", type=int, default=5)
-
-    a = parser.parse_args()
-
-    if a.mode == "normal":
-        simulate_normal(a.count)
-    elif a.mode == "impossible_travel":
-        simulate_impossible_travel()
-    elif a.mode == "bot_script":
-        simulate_bot_script(a.user, a.attempts)
-    elif a.mode == "fraud_ring":
-        simulate_fraud_ring(a.group_size)
+        elif choice == '2':
+            print(f"\n{YELLOW}>>> Simulating Impossible Travel...{RESET}")
+            # Feature[0] = 100.0 triggers "Impossible Travel" logic
+            send_request("traveler_joe", [100.0, 50.0, 10.0, 5.0], [[1]*10], "Geo-Hopping")
+            
+        elif choice == '3':
+            print(f"\n{RED}>>> Launching Bot Swarm...{RESET}")
+            for i in range(10):
+                # Repetitive sequence triggers "Bot" logic
+                send_request(f"bot_{i}", [0.5, 0.5, 0.5, 0.5], [[1],[1],[1],[1],[1],[1],[1],[1],[1],[1]], "Bot Script")
+                time.sleep(0.1) # Fast fire
+                
+        elif choice == '4':
+            print(f"\n{RED}>>> Injecting Fraud Ring Identity...{RESET}")
+            # user_101 triggers "Fraud Ring" logic
+            send_request("user_101", [0.5, 0.5, 0.5, 0.5], [[1],[2],[3]], "Blacklisted ID")
+            
+        elif choice == '5':
+            break
 
 if __name__ == "__main__":
-    main()
+    run_simulation()
